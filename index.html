@@ -830,7 +830,17 @@
                     
                     // Obsługa odpowiedzi z n8n
                     let data;
-                    if (result.data && Array.isArray(result.data)) {
+                    
+                    // Sprawdź czy to błędny format z "object Object"
+                    if (result['object Object']) {
+                        console.log('Detected object Object format, extracting data...');
+                        const actualData = result['object Object'];
+                        if (actualData.data && Array.isArray(actualData.data)) {
+                            data = actualData.data;
+                        } else {
+                            throw new Error('Brak tablicy danych w odpowiedzi n8n');
+                        }
+                    } else if (result.data && Array.isArray(result.data)) {
                         data = result.data;
                     } else if (Array.isArray(result)) {
                         data = result;
