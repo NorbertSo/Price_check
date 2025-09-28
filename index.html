@@ -1,9 +1,9 @@
 async function connectN8N() {
             const choice = confirm('Połączyć z:\nOK = n8n webhook\nCancel = Google Sheets');
-
+            
             if (choice) {
-                // Połączenie z n8n - używamy endpoint z Twojej automatyzacji
-                const endpoint = prompt('Podaj endpoint n8n workflow:', 'https://your-n8n-instance.com/webhook/price-monitor');
+                // Połączenie z n8n
+                const endpoint = prompt('Podaj endpoint n8n workflow:', 'https://norbertsobala.app.n8n.cloud/webhook/price-monitor');
                 if (endpoint) {
                     n8nEndpoint = endpoint;
                     isConnectedToN8N = true;
