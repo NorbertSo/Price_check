@@ -1,0 +1,59 @@
+async function connectN8N() {
+            const choice = confirm('Połączyć z:\nOK = n8n webhook\nCancel = Google Sheets');
+            
+            if (choice) {
+                // Połączenie z n8n - używamy endpoint z Twojej automatyzacji
+                const endpoint = prompt('Podaj endpoint n8n workflow:', 'https://your-n8n-instance.com/webhook/price-monitor');
+                if (endpoint) {
+                    n8nEndpoint = endpoint;
+                    isConnectedToN8N = true;
+                    document.getElementById('triggerBtn').style.display = 'inline-flex';
+                    addNotification('Połączono z n8n workflow', 'success');
+                    await refreshData();
+                }
+            } else {
+                // Połączenie z Google Sheets
+                const sheetId = prompt('Podaj ID Google Sheets (z URL arkusza):');
+                if (sheetId) {
+                    n8nEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+                    isConnectedToN8N = true;
+                    addNotification('Połączono z Google Sheets', 'success');
+                    await refreshData();
+                }
+            }
+        }
+
+        async function triggerN8NWorkflow() {
+            if (!n8nEndpoint) {
+                addNotification('Najpierw połącz się z n8n', 'error');
+                return;
+            }
+
+            try {
+                addNotification('Uruchamianie workflow...', 'info');
+                
+                // Wywołaj webhook, który uruchomi workflow
+                const response = await fetch(n8nEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        trigger: 'manual_refresh',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    addNotification('Workflow uruchomiony pomyślnie', 'success');
+                    // Poczekaj chwilę i odśwież dane
+                    setTimeout(() => {
+                        refreshData();
+                    }, 5000);
+                } else {
+                    addNotification('Błąd uruchamiania workflow', 'error');
+                }
+            } catch (error) {
+                addNotification('Błąd: ' + error.message, 'error');
+            }
+        }
