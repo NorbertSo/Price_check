@@ -805,24 +805,38 @@
             
             try {
                 if (isConnectedToN8N && n8nEndpoint) {
-                    // Pobierz dane z n8n
                     addNotification('Pobieranie danych z n8n...', 'info');
                     
                     const response = await fetch(n8nEndpoint);
+                    
+                    // DEBUG: Sprawdź surową odpowiedź
+                    const rawText = await response.text();
+                    console.log('Raw response from n8n:', rawText);
+                    console.log('Content-Type:', response.headers.get('content-type'));
+                    
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
-                    const result = await response.json();
+                    // Spróbuj sparsować jako JSON
+                    let result;
+                    try {
+                        result = JSON.parse(rawText);
+                        console.log('Parsed JSON:', result);
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        throw new Error(`Odpowiedź nie jest prawidłowym JSON. Otrzymano: ${rawText.substring(0, 200)}...`);
+                    }
                     
-                    // Obsługa odpowiedzi z n8n (sprawdź strukturę danych)
+                    // Obsługa odpowiedzi z n8n
                     let data;
                     if (result.data && Array.isArray(result.data)) {
                         data = result.data;
                     } else if (Array.isArray(result)) {
                         data = result;
                     } else {
-                        throw new Error('Nieprawidłowy format danych z n8n');
+                        console.error('Unexpected data format:', result);
+                        throw new Error('Nieprawidłowy format danych z n8n - oczekiwano tablicy');
                     }
                     
                     if (data.length === 0) {
