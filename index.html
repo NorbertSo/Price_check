@@ -466,8 +466,8 @@
             <div class="table-header">
                 <div class="table-title">Monitorowane produkty (<span id="visibleCount">0</span>)</div>
                 <div class="table-actions">
-                    <button class="btn btn-secondary" onclick="connectN8N()">Połącz z n8n</button>
-                    <button class="btn btn-secondary" onclick="triggerN8NWorkflow()" id="triggerBtn" style="display:none">Uruchom workflow</button>
+                    <button class="btn btn-secondary" onclick="connectToPriceChecker()">Połącz z Price Checker</button>
+                    <button class="btn btn-secondary" onclick="triggerPriceCheck()" id="triggerBtn" style="display:none">Sprawdź ceny</button>
                 </div>
             </div>
             
@@ -505,8 +505,8 @@
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
-        let isConnectedToN8N = false;
-        let n8nEndpoint = '';
+        let isConnectedToPriceChecker = false;
+        let priceCheckerEndpoint = '';
 
         function generateSampleData(count) {
             const data = [];
@@ -548,8 +548,8 @@
             tableBody.innerHTML = `
                 <div style="padding: 40px; text-align: center; color: #64748b;">
                     <div style="font-size: 18px; margin-bottom: 12px;">Brak połączenia z danymi</div>
-                    <div style="font-size: 14px; margin-bottom: 20px;">Kliknij "Połącz z n8n" aby załadować dane z systemu monitorowania cen</div>
-                    <button class="btn btn-primary" onclick="connectN8N()">Połącz z n8n</button>
+                    <div style="font-size: 14px; margin-bottom: 20px;">Kliknij "Połącz z Price Checker" aby załadować dane z systemu monitorowania cen</div>
+                    <button class="btn btn-primary" onclick="connectToPriceChecker()">Połącz z Price Checker</button>
                 </div>
             `;
             
@@ -581,12 +581,12 @@
         function renderTable() {
             const tableBody = document.getElementById('table-body');
             
-            if (filteredData.length === 0 && !isConnectedToN8N) {
+            if (filteredData.length === 0 && !isConnectedToPriceChecker) {
                 showEmptyState();
                 return;
             }
             
-            if (filteredData.length === 0 && isConnectedToN8N) {
+            if (filteredData.length === 0 && isConnectedToPriceChecker) {
                 tableBody.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #64748b;">
                         <div style="font-size: 18px; margin-bottom: 12px;">Brak produktów do wyświetlenia</div>
@@ -739,42 +739,42 @@
             }, 10000);
         }
 
-        async function connectN8N() {
-            const choice = confirm('Połączyć z:\nOK = n8n webhook\nCancel = Google Sheets');
+        async function connectToPriceChecker() {
+            const choice = confirm('Połączyć z:\nOK = Price Checker API\nCancel = Google Sheets');
             
             if (choice) {
-                // Połączenie z n8n
-                const endpoint = prompt('Podaj endpoint n8n workflow:', 'https://norbertsobala.app.n8n.cloud/webhook/price-monitor');
+                // Połączenie z Price Checker
+                const endpoint = prompt('Podaj endpoint Price Checker API:', 'https://norbertsobala.app.n8n.cloud/webhook/price-monitor');
                 if (endpoint) {
-                    n8nEndpoint = endpoint;
-                    isConnectedToN8N = true;
+                    priceCheckerEndpoint = endpoint;
+                    isConnectedToPriceChecker = true;
                     document.getElementById('triggerBtn').style.display = 'inline-flex';
-                    addNotification('Połączono z n8n workflow', 'success');
+                    addNotification('Połączono z Price Checker API', 'success');
                     await refreshData();
                 }
             } else {
                 // Połączenie z Google Sheets
                 const sheetId = prompt('Podaj ID Google Sheets (z URL arkusza):');
                 if (sheetId) {
-                    n8nEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-                    isConnectedToN8N = true;
+                    priceCheckerEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+                    isConnectedToPriceChecker = true;
                     addNotification('Połączono z Google Sheets', 'success');
                     await refreshData();
                 }
             }
         }
 
-        async function triggerN8NWorkflow() {
-            if (!n8nEndpoint) {
-                addNotification('Najpierw połącz się z n8n', 'error');
+        async function triggerPriceCheck() {
+            if (!priceCheckerEndpoint) {
+                addNotification('Najpierw połącz się z Price Checker', 'error');
                 return;
             }
 
             try {
-                addNotification('Uruchamianie workflow...', 'info');
+                addNotification('Uruchamianie sprawdzania cen...', 'info');
                 
-                // Wywołaj webhook, który uruchomi workflow
-                const response = await fetch(n8nEndpoint, {
+                // Wywołaj endpoint, który uruchomi sprawdzanie cen
+                const response = await fetch(priceCheckerEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -786,13 +786,13 @@
                 });
 
                 if (response.ok) {
-                    addNotification('Workflow uruchomiony pomyślnie', 'success');
+                    addNotification('Sprawdzanie cen uruchomione pomyślnie', 'success');
                     // Poczekaj chwilę i odśwież dane
                     setTimeout(() => {
                         refreshData();
                     }, 5000);
                 } else {
-                    addNotification('Błąd uruchamiania workflow', 'error');
+                    addNotification('Błąd uruchamiania sprawdzania cen', 'error');
                 }
             } catch (error) {
                 addNotification('Błąd: ' + error.message, 'error');
@@ -804,14 +804,14 @@
             refreshIcon.style.animation = 'spin 1s linear infinite';
             
             try {
-                if (isConnectedToN8N && n8nEndpoint) {
-                    addNotification('Pobieranie danych z n8n...', 'info');
+                if (isConnectedToPriceChecker && priceCheckerEndpoint) {
+                    addNotification('Pobieranie danych z Price Checker...', 'info');
                     
-                    const response = await fetch(n8nEndpoint);
+                    const response = await fetch(priceCheckerEndpoint);
                     
                     // DEBUG: Sprawdź surową odpowiedź
                     const rawText = await response.text();
-                    console.log('Raw response from n8n:', rawText);
+                    console.log('Raw response from Price Checker:', rawText);
                     console.log('Content-Type:', response.headers.get('content-type'));
                     
                     if (!response.ok) {
@@ -828,7 +828,7 @@
                         throw new Error(`Odpowiedź nie jest prawidłowym JSON. Otrzymano: ${rawText.substring(0, 200)}...`);
                     }
                     
-                    // Obsługa odpowiedzi z n8n
+                    // Obsługa odpowiedzi z Price Checker
                     let data;
                     
                     // Sprawdź czy to błędny format z "object Object"
@@ -838,7 +838,7 @@
                         if (actualData.data && Array.isArray(actualData.data)) {
                             data = actualData.data;
                         } else {
-                            throw new Error('Brak tablicy danych w odpowiedzi n8n');
+                            throw new Error('Brak tablicy danych w odpowiedzi Price Checker');
                         }
                     } else if (result.data && Array.isArray(result.data)) {
                         data = result.data;
@@ -846,14 +846,14 @@
                         data = result;
                     } else {
                         console.error('Unexpected data format:', result);
-                        throw new Error('Nieprawidłowy format danych z n8n - oczekiwano tablicy');
+                        throw new Error('Nieprawidłowy format danych z Price Checker - oczekiwano tablicy');
                     }
                     
                     if (data.length === 0) {
-                        throw new Error('Brak danych z n8n - workflow może nie działać poprawnie');
+                        throw new Error('Brak danych z Price Checker - system może nie działać poprawnie');
                     }
                     
-                    // Konwersja danych z n8n do formatu aplikacji
+                    // Konwersja danych z Price Checker do formatu aplikacji
                     allData = data.map(item => ({
                         identifier: item['Indeks'] || item.indeks || item.identifier || 'unknown',
                         indeks: item['Indeks'] || item.indeks || item.identifier || 'unknown',
@@ -875,10 +875,10 @@
                     checkPriceChanges(allData);
                     
                     applyFilters();
-                    addNotification(`Załadowano ${allData.length} produktów z n8n`, 'success');
+                    addNotification(`Załadowano ${allData.length} produktów z Price Checker`, 'success');
                     
                 } else {
-                    throw new Error('Brak połączenia z n8n - użyj przycisku "Połącz z n8n"');
+                    throw new Error('Brak połączenia z Price Checker - użyj przycisku "Połącz z Price Checker"');
                 }
                 
             } catch (error) {
