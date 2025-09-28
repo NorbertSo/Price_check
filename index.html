@@ -1,4 +1,720 @@
-async function connectN8N() {
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceMonitor Pro - Monitoring Cen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .stat-positive {
+            color: #059669;
+        }
+
+        .stat-negative {
+            color: #dc2626;
+        }
+
+        .stat-neutral {
+            color: #64748b;
+        }
+
+        .filters-section {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .table-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .virtual-table {
+            height: 600px;
+            overflow-y: auto;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .table-head {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            z-index: 10;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 150px 120px 100px 100px 100px 120px 150px 200px 1fr;
+            border-bottom: 1px solid #f1f5f9;
+            min-height: 52px;
+            align-items: center;
+        }
+
+        .table-row:hover {
+            background: #f8fafc;
+        }
+
+        .table-cell {
+            padding: 12px 16px;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .table-header-cell {
+            font-weight: 600;
+            color: #374151;
+            background: #f8fafc;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .status-higher {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .status-lower {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .status-identical {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .price-cell {
+            font-weight: 600;
+        }
+
+        .price-positive {
+            color: #059669;
+        }
+
+        .price-negative {
+            color: #dc2626;
+        }
+
+        .action-required {
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .notifications-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .notification {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #64748b;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .table-row {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+            
+            .table-cell {
+                border-bottom: 1px solid #f1f5f9;
+                padding: 8px 16px;
+            }
+            
+            .notifications-panel {
+                position: relative;
+                width: 100%;
+                margin: 20px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">PriceMonitor Pro</div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="exportData()">Eksportuj</button>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    <span id="refresh-icon">↻</span>
+                    Odśwież
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-number stat-positive" id="advantageCount">0</div>
+                <div class="stat-label">Przewaga cenowa</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number stat-negative" id="disadvantageCount">0</div>
+                <div class="stat-label">Wyższa cena</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number stat-neutral" id="totalProducts">0</div>
+                <div class="stat-label">Produkty</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgDifference">0%</div>
+                <div class="stat-label">Średnia różnica</div>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Szukaj produktu</label>
+                    <input type="text" class="filter-input" id="searchInput" placeholder="Wpisz indeks lub nazwę...">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Status ceny</label>
+                    <select class="filter-input" id="statusFilter">
+                        <option value="">Wszystkie</option>
+                        <option value="higher_than_competition">Wyższa</option>
+                        <option value="lower_than_competition">Niższa</option>
+                        <option value="identical">Identyczna</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Różnica cenowa</label>
+                    <select class="filter-input" id="differenceFilter">
+                        <option value="">Wszystkie</option>
+                        <option value="high">Więcej niż 20%</option>
+                        <option value="medium">5% - 20%</option>
+                        <option value="low">Mniej niż 5%</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Akcja wymagana</label>
+                    <select class="filter-input" id="actionFilter">
+                        <option value="">Wszystkie</option>
+                        <option value="true">Tak</option>
+                        <option value="false">Nie</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">Monitorowane produkty (<span id="visibleCount">0</span>)</div>
+                <div class="table-actions">
+                    <button class="btn btn-secondary" onclick="connectN8N()">Połącz z n8n</button>
+                    <button class="btn btn-secondary" onclick="triggerN8NWorkflow()" id="triggerBtn" style="display:none">Uruchom workflow</button>
+                </div>
+            </div>
+            
+            <div class="virtual-table">
+                <div class="table-head">
+                    <div class="table-row">
+                        <div class="table-cell table-header-cell">Indeks</div>
+                        <div class="table-cell table-header-cell">Status</div>
+                        <div class="table-cell table-header-cell">Cena BL</div>
+                        <div class="table-cell table-header-cell">Cena NK</div>
+                        <div class="table-cell table-header-cell">Różnica</div>
+                        <div class="table-cell table-header-cell">Różnica %</div>
+                        <div class="table-cell table-header-cell">Rekomendacja</div>
+                        <div class="table-cell table-header-cell">Ostatnia aktualizacja</div>
+                        <div class="table-cell table-header-cell">URL</div>
+                    </div>
+                </div>
+                <div id="table-body"></div>
+            </div>
+            
+            <div class="pagination">
+                <div class="pagination-info" id="paginationInfo">Ładowanie...</div>
+                <div class="pagination-controls">
+                    <button class="btn btn-secondary" onclick="previousPage()">Poprzednia</button>
+                    <button class="btn btn-secondary" onclick="nextPage()">Następna</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notifications-panel" id="notificationsPanel"></div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const itemsPerPage = 50;
+        let isConnectedToN8N = false;
+        let n8nEndpoint = '';
+
+        // Przykładowe dane - będą zastąpione danymi z n8n
+        const sampleData = generateSampleData(100);
+
+        function generateSampleData(count) {
+            const data = [];
+            const identifiers = ['704-LV-0945', '717-LK-0769', '631-LH-0173'];
+            
+            for (let i = 0; i < count; i++) {
+                const basePrice = Math.random() * 100 + 20;
+                const competitorPrice = basePrice * (0.8 + Math.random() * 0.4);
+                const difference = competitorPrice - basePrice;
+                const percentDifference = (difference / basePrice) * 100;
+                
+                data.push({
+                    identifier: `${identifiers[i % 3]}-${String(i).padStart(3, '0')}`,
+                    indeks: `${identifiers[i % 3]}-${String(i).padStart(3, '0')}`,
+                    baseLinkerPrice: Math.round(basePrice * 100) / 100,
+                    scrapedPrice: Math.round(competitorPrice * 100) / 100,
+                    priceDifference: Math.round(difference * 100) / 100,
+                    percentageDifference: `${Math.round(percentDifference * 100) / 100}%`,
+                    priceStatus: difference > 0 ? 'higher_than_competition' : 
+                               difference < -0.01 ? 'lower_than_competition' : 'identical',
+                    recommendation: Math.abs(percentDifference) > 20 ? 'consider_price_adjustment' : 'monitor_competition',
+                    actionRequired: Math.abs(percentDifference) > 20,
+                    scrapingSuccess: Math.random() > 0.05,
+                    url: `https://north.pl/karta/produkt-${i}.html`,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            return data;
+        }
+
+        function initializeApp() {
+            allData = sampleData;
+            filteredData = [...allData];
+            updateStats();
+            renderTable();
+            setupFilters();
+            
+            // Symulacja powiadomień
+            setTimeout(() => {
+                addNotification('Znaleziono 5 produktów z różnicą cenową > 20%', 'warning');
+            }, 2000);
+        }
+
+        function updateStats() {
+            const advantage = filteredData.filter(item => item.priceStatus === 'lower_than_competition').length;
+            const disadvantage = filteredData.filter(item => item.priceStatus === 'higher_than_competition').length;
+            const total = filteredData.length;
+            
+            const avgDiff = filteredData.reduce((sum, item) => {
+                return sum + parseFloat(item.percentageDifference);
+            }, 0) / total;
+
+            document.getElementById('advantageCount').textContent = advantage;
+            document.getElementById('disadvantageCount').textContent = disadvantage;
+            document.getElementById('totalProducts').textContent = total;
+            document.getElementById('avgDifference').textContent = `${avgDiff.toFixed(1)}%`;
+            document.getElementById('visibleCount').textContent = total;
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById('table-body');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            tableBody.innerHTML = pageData.map(item => `
+                <div class="table-row ${item.actionRequired ? 'action-required' : ''}">
+                    <div class="table-cell">${item.identifier}</div>
+                    <div class="table-cell">
+                        <span class="status-badge status-${item.priceStatus.replace('_than_competition', '')}">
+                            ${getStatusText(item.priceStatus)}
+                        </span>
+                    </div>
+                    <div class="table-cell price-cell">${item.baseLinkerPrice} zł</div>
+                    <div class="table-cell price-cell">${item.scrapedPrice} zł</div>
+                    <div class="table-cell price-cell ${item.priceDifference > 0 ? 'price-negative' : 'price-positive'}">
+                        ${item.priceDifference > 0 ? '+' : ''}${item.priceDifference} zł
+                    </div>
+                    <div class="table-cell ${item.priceDifference > 0 ? 'price-negative' : 'price-positive'}">
+                        ${item.percentageDifference}
+                    </div>
+                    <div class="table-cell">${getRecommendationText(item.recommendation)}</div>
+                    <div class="table-cell">${formatDate(item.timestamp)}</div>
+                    <div class="table-cell">
+                        <a href="${item.url}" target="_blank" style="color: #3b82f6; text-decoration: none;">
+                            Otwórz
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+
+            updatePagination();
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'higher_than_competition': return 'Wyższa';
+                case 'lower_than_competition': return 'Niższa';
+                case 'identical': return 'Identyczna';
+                default: return 'Nieznany';
+            }
+        }
+
+        function getRecommendationText(recommendation) {
+            switch(recommendation) {
+                case 'consider_price_adjustment': return 'Rozważ zmianę ceny';
+                case 'monitor_competition': return 'Monitoruj konkurencję';
+                case 'good_position': return 'Dobra pozycja';
+                default: return 'Brak rekomendacji';
+            }
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString('pl-PL');
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            const startItem = (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
+
+            document.getElementById('paginationInfo').textContent = 
+                `${startItem}-${endItem} z ${filteredData.length} produktów`;
+        }
+
+        function setupFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const statusFilter = document.getElementById('statusFilter');
+            const differenceFilter = document.getElementById('differenceFilter');
+            const actionFilter = document.getElementById('actionFilter');
+
+            [searchInput, statusFilter, differenceFilter, actionFilter].forEach(filter => {
+                filter.addEventListener('change', applyFilters);
+                filter.addEventListener('input', applyFilters);
+            });
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const differenceFilter = document.getElementById('differenceFilter').value;
+            const actionFilter = document.getElementById('actionFilter').value;
+
+            filteredData = allData.filter(item => {
+                const matchesSearch = item.identifier.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || item.priceStatus === statusFilter;
+                const matchesAction = !actionFilter || item.actionRequired.toString() === actionFilter;
+                
+                let matchesDifference = true;
+                if (differenceFilter) {
+                    const absPercentage = Math.abs(parseFloat(item.percentageDifference));
+                    switch(differenceFilter) {
+                        case 'high': matchesDifference = absPercentage > 20; break;
+                        case 'medium': matchesDifference = absPercentage >= 5 && absPercentage <= 20; break;
+                        case 'low': matchesDifference = absPercentage < 5; break;
+                    }
+                }
+
+                return matchesSearch && matchesStatus && matchesDifference && matchesAction;
+            });
+
+            currentPage = 1;
+            updateStats();
+            renderTable();
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        }
+
+        function addNotification(message, type = 'info') {
+            const panel = document.getElementById('notificationsPanel');
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">Powiadomienie</div>
+                    <div class="notification-time">${new Date().toLocaleTimeString('pl-PL')}</div>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="notification-message">${message}</div>
+            `;
+            
+            panel.insertBefore(notification, panel.firstChild);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 10000);
+        }
+
+        async function connectN8N() {
             const choice = confirm('Połączyć z:\nOK = n8n webhook\nCancel = Google Sheets');
             
             if (choice) {
@@ -57,3 +773,120 @@ async function connectN8N() {
                 addNotification('Błąd: ' + error.message, 'error');
             }
         }
+
+        async function refreshData() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            refreshIcon.style.animation = 'spin 1s linear infinite';
+            
+            try {
+                if (isConnectedToN8N && n8nEndpoint) {
+                    // Pobierz dane z n8n
+                    const response = await fetch(n8nEndpoint);
+                    const result = await response.json();
+                    
+                    // Obsługa odpowiedzi z n8n (sprawdź strukturę danych)
+                    let data;
+                    if (result.data && Array.isArray(result.data)) {
+                        data = result.data;
+                    } else if (Array.isArray(result)) {
+                        data = result;
+                    } else {
+                        data = [result];
+                    }
+                    
+                    // Konwersja danych z n8n do formatu aplikacji
+                    allData = data.map(item => ({
+                        identifier: item['Indeks'] || item.indeks || item.identifier || 'unknown',
+                        indeks: item['Indeks'] || item.indeks || item.identifier || 'unknown',
+                        baseLinkerPrice: parseFloat(item['Cena BL'] || item.baseLinkerPrice || 0),
+                        scrapedPrice: parseFloat(item['Cena NK'] || item.scrapedPrice || 0),
+                        priceDifference: parseFloat(item['Różnica'] || item.priceDifference || 0),
+                        percentageDifference: item['Różnica %'] || item.percentageDifference || '0%',
+                        priceStatus: determinePriceStatus(item),
+                        recommendation: item['Rekomendacja'] || item.recommendation || 'monitor_competition',
+                        actionRequired: Math.abs(parseFloat(item['Różnica %'] || item.percentageDifference || '0')) > 20,
+                        scrapingSuccess: item.scrapingSuccess !== false,
+                        url: item['URL'] || item.url || '',
+                        timestamp: item['Ostatnia aktualizacja'] || item.timestamp || new Date().toISOString()
+                    }));
+                    
+                    filteredData = [...allData];
+                    
+                    // Sprawdź zmiany cen > 2%
+                    checkPriceChanges(allData);
+                } else {
+                    // Symulacja nowych danych
+                    allData = generateSampleData(120);
+                    filteredData = [...allData];
+                }
+                
+                applyFilters();
+                addNotification('Dane zostały odświeżone', 'success');
+                
+            } catch (error) {
+                addNotification('Błąd podczas odświeżania danych: ' + error.message, 'error');
+            } finally {
+                refreshIcon.style.animation = '';
+            }
+        }
+
+        function determinePriceStatus(item) {
+            const difference = parseFloat(item['Różnica'] || item.priceDifference || 0);
+            if (Math.abs(difference) < 0.01) {
+                return 'identical';
+            } else if (difference > 0) {
+                return 'higher_than_competition';
+            } else {
+                return 'lower_than_competition';
+            }
+        }
+
+        function checkPriceChanges(newData) {
+            newData.forEach(item => {
+                const percentage = Math.abs(parseFloat(item.percentageDifference));
+                if (percentage > 2) {
+                    addNotification(
+                        `${item.identifier}: Zmiana ceny o ${item.percentageDifference} - wymaga uwagi`,
+                        'warning'
+                    );
+                }
+            });
+        }
+
+        function exportData() {
+            const csv = convertToCSV(filteredData);
+            downloadCSV(csv, 'price-monitoring-data.csv');
+            addNotification('Dane zostały wyeksportowane', 'success');
+        }
+
+        function convertToCSV(data) {
+            const headers = ['Indeks', 'Status', 'Cena BaseLinker', 'Cena North', 'Różnica', 'Różnica %', 'Rekomendacja', 'URL'];
+            const rows = data.map(item => [
+                item.identifier,
+                getStatusText(item.priceStatus),
+                item.baseLinkerPrice,
+                item.scrapedPrice,
+                item.priceDifference,
+                item.percentageDifference,
+                getRecommendationText(item.recommendation),
+                item.url
+            ]);
+            
+            return [headers, ...rows].map(row => row.join(',')).join('\n');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Inicjalizacja aplikacji
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
