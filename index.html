@@ -508,9 +508,6 @@
         let isConnectedToN8N = false;
         let n8nEndpoint = '';
 
-        // Przykładowe dane - będą zastąpione danymi z n8n
-        const sampleData = generateSampleData(100);
-
         function generateSampleData(count) {
             const data = [];
             const identifiers = ['704-LV-0945', '717-LK-0769', '631-LH-0173'];
@@ -541,16 +538,28 @@
         }
 
         function initializeApp() {
-            allData = sampleData;
-            filteredData = [...allData];
-            updateStats();
-            renderTable();
+            // Nie ładuj przykładowych danych - czekaj na połączenie z n8n
+            showEmptyState();
             setupFilters();
+        }
+
+        function showEmptyState() {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: #64748b;">
+                    <div style="font-size: 18px; margin-bottom: 12px;">Brak połączenia z danymi</div>
+                    <div style="font-size: 14px; margin-bottom: 20px;">Kliknij "Połącz z n8n" aby załadować dane z systemu monitorowania cen</div>
+                    <button class="btn btn-primary" onclick="connectN8N()">Połącz z n8n</button>
+                </div>
+            `;
             
-            // Symulacja powiadomień
-            setTimeout(() => {
-                addNotification('Znaleziono 5 produktów z różnicą cenową > 20%', 'warning');
-            }, 2000);
+            // Wyzeruj statystyki
+            document.getElementById('advantageCount').textContent = '0';
+            document.getElementById('disadvantageCount').textContent = '0';
+            document.getElementById('totalProducts').textContent = '0';
+            document.getElementById('avgDifference').textContent = '0%';
+            document.getElementById('visibleCount').textContent = '0';
+            document.getElementById('paginationInfo').textContent = 'Brak danych';
         }
 
         function updateStats() {
@@ -571,6 +580,22 @@
 
         function renderTable() {
             const tableBody = document.getElementById('table-body');
+            
+            if (filteredData.length === 0 && !isConnectedToN8N) {
+                showEmptyState();
+                return;
+            }
+            
+            if (filteredData.length === 0 && isConnectedToN8N) {
+                tableBody.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #64748b;">
+                        <div style="font-size: 18px; margin-bottom: 12px;">Brak produktów do wyświetlenia</div>
+                        <div style="font-size: 14px;">Sprawdź filtry lub odśwież dane</div>
+                    </div>
+                `;
+                return;
+            }
+            
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const pageData = filteredData.slice(startIndex, endIndex);
@@ -781,7 +806,13 @@
             try {
                 if (isConnectedToN8N && n8nEndpoint) {
                     // Pobierz dane z n8n
+                    addNotification('Pobieranie danych z n8n...', 'info');
+                    
                     const response = await fetch(n8nEndpoint);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const result = await response.json();
                     
                     // Obsługa odpowiedzi z n8n (sprawdź strukturę danych)
@@ -791,7 +822,11 @@
                     } else if (Array.isArray(result)) {
                         data = result;
                     } else {
-                        data = [result];
+                        throw new Error('Nieprawidłowy format danych z n8n');
+                    }
+                    
+                    if (data.length === 0) {
+                        throw new Error('Brak danych z n8n - workflow może nie działać poprawnie');
                     }
                     
                     // Konwersja danych z n8n do formatu aplikacji
@@ -814,17 +849,22 @@
                     
                     // Sprawdź zmiany cen > 2%
                     checkPriceChanges(allData);
+                    
+                    applyFilters();
+                    addNotification(`Załadowano ${allData.length} produktów z n8n`, 'success');
+                    
                 } else {
-                    // Symulacja nowych danych
-                    allData = generateSampleData(120);
-                    filteredData = [...allData];
+                    throw new Error('Brak połączenia z n8n - użyj przycisku "Połącz z n8n"');
                 }
-                
-                applyFilters();
-                addNotification('Dane zostały odświeżone', 'success');
                 
             } catch (error) {
                 addNotification('Błąd podczas odświeżania danych: ' + error.message, 'error');
+                console.error('Błąd refreshData:', error);
+                
+                // Pokaż pusty stan jeśli nie ma danych
+                if (allData.length === 0) {
+                    showEmptyState();
+                }
             } finally {
                 refreshIcon.style.animation = '';
             }
